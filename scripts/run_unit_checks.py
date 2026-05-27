@@ -11,6 +11,7 @@ import contextlib
 import io
 import json
 import tempfile
+from decimal import Decimal
 from pathlib import Path
 
 from arbcore import AnalysisEngine, Edge, MarketSnapshot, PolicyError, RiskPolicy, SnapshotError
@@ -26,23 +27,23 @@ from arbcore.service import analyze_with_optional_rust
 def check_engine_cycle() -> None:
     snapshot = MarketSnapshot(
         edges=(
-            Edge("A", "B", 2.0, venue="one"),
-            Edge("B", "C", 2.0, venue="two"),
-            Edge("C", "A", 0.26, venue="three"),
+            Edge("A", "B", Decimal("2"), venue="one"),
+            Edge("B", "C", Decimal("2"), venue="two"),
+            Edge("C", "A", Decimal("0.26"), venue="three"),
         )
     )
-    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=1, max_hops=3)).analyze(snapshot)
+    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=Decimal("1"), max_hops=3)).analyze(snapshot)
     assert len(opportunities) == 1
     assert opportunities[0].path == ("A", "B", "C", "A")
 
 
 def check_policy_and_validation() -> None:
     low_liquidity = MarketSnapshot(
-        (Edge("A", "B", 2, liquidity=1), Edge("B", "A", 0.6, liquidity=1))
+        (Edge("A", "B", Decimal("2"), liquidity=Decimal("1")), Edge("B", "A", Decimal("0.6"), liquidity=Decimal("1")))
     )
-    assert AnalysisEngine(RiskPolicy(min_liquidity=10)).analyze(low_liquidity) == []
+    assert AnalysisEngine(RiskPolicy(min_liquidity=Decimal("10"))).analyze(low_liquidity) == []
     try:
-        AnalysisEngine().analyze(MarketSnapshot((Edge("A", "B", -1),)))
+        AnalysisEngine().analyze(MarketSnapshot((Edge("A", "B", Decimal("-1")),)))
     except SnapshotError:
         pass
     else:
@@ -57,13 +58,13 @@ def check_fail_closed_limits() -> None:
     else:
         raise AssertionError("unbounded max_hops was accepted")
     try:
-        Edge("A" * 33, "B", 1).validate()
+        Edge("A" * 33, "B", Decimal("1")).validate()
     except SnapshotError:
         pass
     else:
         raise AssertionError("oversized asset symbol was accepted")
     try:
-        Edge("A", "B", 1, metadata=[("bad", "shape")]).validate()
+        Edge("A", "B", Decimal("1"), metadata=[("bad", "shape")]).validate()
     except SnapshotError:
         pass
     else:

@@ -7,6 +7,8 @@ Run from the repository root:
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from defi_arbitrage_core import AnalysisEngine, Edge, MarketSnapshot, RiskPolicy
 from defi_arbitrage_core.reporters import TextReporter
 
@@ -27,7 +29,7 @@ class InMemoryProvider:
 
 def main() -> int:
     snapshot = InMemoryProvider().load_snapshot()
-    policy = RiskPolicy(min_profit_bps=1, max_notional=50)
+    policy = RiskPolicy(min_profit_bps=Decimal("1"), max_notional=Decimal("50"))
     opportunities = AnalysisEngine(policy).analyze(snapshot)
     print(TextReporter().render(opportunities))
     return 0

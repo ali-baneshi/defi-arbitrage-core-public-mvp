@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import asdict
+from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from arbcore.errors import SnapshotError
 from arbcore.models import (
@@ -14,8 +16,31 @@ from arbcore.models import (
     Opportunity,
 )
 
+logger = logging.getLogger(__name__)
+
 SNAPSHOT_SCHEMA_VERSION = "2020-12"
 MAX_SNAPSHOT_EDGES = 10_000
+
+
+class EdgePayload(TypedDict, total=False):
+    """Type-safe definition for edge input data."""
+
+    source: str
+    target: str
+    rate: float | str | Decimal
+    venue: str
+    fee_bps: float | str | Decimal
+    liquidity: float | str | Decimal | None
+    metadata: dict[str, Any]
+
+
+class SnapshotPayload(TypedDict, total=False):
+    """Type-safe definition for snapshot input data."""
+
+    source: str
+    network: str
+    timestamp: str
+    edges: list[EdgePayload]
 
 
 def snapshot_to_dict(snapshot: MarketSnapshot) -> dict[str, Any]:

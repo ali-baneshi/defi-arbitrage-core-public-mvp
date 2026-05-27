@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
+from decimal import Decimal
 
 from arbcore.models import Edge, MarketSnapshot, Opportunity, RiskPolicy
 
@@ -24,7 +25,7 @@ class AnalysisEngine:
 
         opportunities: dict[tuple[str, ...], Opportunity] = {}
         for start in sorted(graph):
-            self._walk(start, start, graph, [], 1.0, snapshot.network, opportunities)
+            self._walk(start, start, graph, [], Decimal("1"), snapshot.network, opportunities)
         ranked = sorted(opportunities.values(), key=lambda item: item.profit_bps, reverse=True)
         return ranked[: self.policy.max_results]
 
@@ -34,7 +35,7 @@ class AnalysisEngine:
         current: str,
         graph: dict[str, list[Edge]],
         route: list[Edge],
-        gross_return: float,
+        gross_return: Decimal,
         network: str,
         opportunities: dict[tuple[str, ...], Opportunity],
     ) -> None:
@@ -69,7 +70,7 @@ class AnalysisEngine:
         network: str,
         start: str,
         route: Iterable[Edge],
-        gross_return: float,
+        gross_return: Decimal,
     ) -> Opportunity:
         route_tuple = tuple(route)
         path = (start, *(edge.target for edge in route_tuple))
@@ -84,7 +85,7 @@ class AnalysisEngine:
             path=path,
             venues=tuple(edge.venue for edge in route_tuple),
             gross_return=gross_return,
-            profit_bps=(gross_return - 1.0) * 10_000.0,
+            profit_bps=(gross_return - Decimal("1")) * Decimal("10000"),
             limiting_liquidity=limiting_liquidity,
             estimated_capacity=estimated_capacity,
         )

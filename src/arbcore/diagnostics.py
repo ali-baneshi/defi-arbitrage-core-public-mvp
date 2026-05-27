@@ -4,12 +4,22 @@ import json
 import platform
 import shutil
 import sys
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from arbcore import __version__
 from arbcore.config import Settings
 from arbcore.contracts import validate_contract_workspace
+
+
+class _DiagnosticsEncoder(json.JSONEncoder):
+    """Custom JSON encoder for diagnostics output."""
+
+    def default(self, obj: Any) -> Any:
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
 
 
 def collect_diagnostics() -> dict[str, Any]:
@@ -48,7 +58,10 @@ def collect_diagnostics() -> dict[str, Any]:
             "pytest": _module_available("pytest"),
             "ruff": shutil.which("ruff") is not None or _module_available("ruff"),
         },
-        "resolved_policy": settings.policy.__dict__,
+        "resolved_policy": {
+            key: (float(value) if isinstance(value, Decimal) else value)
+            for key, value in settings.policy.__dict__.items()
+        },
         "validation_commands": [
             "PYTHONPATH=src python scripts/validate_all.py --include-rust",
             "PYTHONPATH=src python scripts/validate_negative_cases.py",
@@ -63,7 +76,7 @@ def collect_diagnostics() -> dict[str, Any]:
 
 
 def diagnostics_json() -> str:
-    return json.dumps(collect_diagnostics(), indent=2)
+    return json.dumps(collect_diagnostics(), indent=2, cls=_DiagnosticsEncoder)
 
 
 def _module_available(name: str) -> bool:
