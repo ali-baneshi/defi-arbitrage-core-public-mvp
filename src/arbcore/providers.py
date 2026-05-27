@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Protocol
@@ -59,10 +60,12 @@ class JsonFileProvider:
             return Edge(
                 source=str(item["source"]),
                 target=str(item["target"]),
-                rate=float(item["rate"]),
+                rate=Decimal(str(item["rate"])),
                 venue=str(item.get("venue", "unknown")),
-                fee_bps=float(item.get("fee_bps", 0.0)),
-                liquidity=(None if item.get("liquidity") is None else float(item["liquidity"])),
+                fee_bps=Decimal(str(item.get("fee_bps", 0))),
+                liquidity=(
+                    None if item.get("liquidity") is None else Decimal(str(item["liquidity"]))
+                ),
                 metadata=dict(item.get("metadata", {})),
             ).normalized()
         except (TypeError, ValueError) as exc:

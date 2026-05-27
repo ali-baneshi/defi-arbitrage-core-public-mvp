@@ -3,11 +3,12 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from decimal import Decimal
+from typing import Any, Mapping
 
 from arbcore.errors import PolicyError, SnapshotError
 
-BPS_DENOMINATOR = 10_000.0
+BPS_DENOMINATOR = Decimal("10000")
 MAX_REASONABLE_HOPS = 8
 MAX_REASONABLE_RESULTS = 1_000
 MAX_ASSET_SYMBOL_LENGTH = 32
@@ -28,27 +29,33 @@ class Edge:
 
     source: str
     target: str
-    rate: float
+    rate: Decimal
     venue: str = "unknown"
-    fee_bps: float = 0.0
-    liquidity: float | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    fee_bps: Decimal = Decimal("0")
+    liquidity: Decimal | None = None
+    metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def normalized(self) -> Edge:
         if not isinstance(self.metadata, dict):
             raise SnapshotError("edge metadata must be an object")
+        # Convert numeric fields to Decimal for type safety
+        rate_val = self.rate if isinstance(self.rate, Decimal) else Decimal(str(self.rate))
+        fee_val = self.fee_bps if isinstance(self.fee_bps, Decimal) else Decimal(str(self.fee_bps))
+        liq_val = None if self.liquidity is None else (
+            self.liquidity if isinstance(self.liquidity, Decimal) else Decimal(str(self.liquidity))
+        )
         return Edge(
             source=str(self.source).strip().upper(),
             target=str(self.target).strip().upper(),
-            rate=float(self.rate),
+            rate=rate_val,
             venue=str(self.venue).strip() or "unknown",
-            fee_bps=float(self.fee_bps),
-            liquidity=None if self.liquidity is None else float(self.liquidity),
+            fee_bps=fee_val,
+            liquidity=liq_val,
             metadata=dict(self.metadata),
         )
 
-    def effective_rate(self) -> float:
-        fee_multiplier = 1.0 - (self.fee_bps / BPS_DENOMINATOR)
+    def effective_rate(self) -> Decimal:
+        fee_multiplier = Decimal("1") - (self.fee_bps / BPS_DENOMINATOR)
         return self.rate * fee_multiplier
 
     def validate(self) -> None:
@@ -61,11 +68,11 @@ class Edge:
             raise SnapshotError("edge source and target must differ")
         if len(edge.venue) > MAX_VENUE_LENGTH:
             raise SnapshotError("edge venue must be 80 characters or fewer")
-        if not math.isfinite(edge.rate) or edge.rate <= 0:
+        if not edge.rate.is_finite() or edge.rate <= 0:
             raise SnapshotError("edge rate must be a finite positive number")
-        if not math.isfinite(edge.fee_bps) or edge.fee_bps < 0 or edge.fee_bps >= BPS_DENOMINATOR:
+        if not edge.fee_bps.is_finite() or edge.fee_bps < 0 or edge.fee_bps >= BPS_DENOMINATOR:
             raise SnapshotError("edge fee_bps must be a finite number in [0, 10000)")
-        if edge.liquidity is not None and (not math.isfinite(edge.liquidity) or edge.liquidity < 0):
+        if edge.liquidity is not None and (not edge.liquidity.is_finite() or edge.liquidity < 0):
             raise SnapshotError("edge liquidity must be a finite non-negative number")
 
 
@@ -119,22 +126,31 @@ class RiskPolicy:
     `max_notional` is a route capacity ceiling, not a trade recommendation.
     """
 
-    min_profit_bps: float = 5.0
+    min_profit_bps: Decimal = Decimal("5")
     max_hops: int = 4
-    min_liquidity: float = 0.0
-    max_notional: float = 10_000.0
+    min_liquidity: Decimal = Decimal("0")
+    max_notional: Decimal = Decimal("10000")
     max_results: int = 25
 
+    def __post_init__(self) -> None:
+        # Ensure Decimal fields are actually Decimal instances for type safety
+        object.__setattr__(self, 'min_profit_bps', 
+            self.min_profit_bps if isinstance(self.min_profit_bps, Decimal) else Decimal(str(self.min_profit_bps)))
+        object.__setattr__(self, 'min_liquidity',
+            self.min_liquidity if isinstance(self.min_liquidity, Decimal) else Decimal(str(self.min_liquidity)))
+        object.__setattr__(self, 'max_notional',
+            self.max_notional if isinstance(self.max_notional, Decimal) else Decimal(str(self.max_notional)))
+
     def validate(self) -> None:
-        if not math.isfinite(self.min_profit_bps) or self.min_profit_bps < 0:
+        if not self.min_profit_bps.is_finite() or self.min_profit_bps < 0:
             raise PolicyError("min_profit_bps must be a finite non-negative number")
         if self.max_hops < 2:
             raise PolicyError("max_hops must be at least 2")
         if self.max_hops > MAX_REASONABLE_HOPS:
             raise PolicyError(f"max_hops must be at most {MAX_REASONABLE_HOPS}")
-        if not math.isfinite(self.min_liquidity) or self.min_liquidity < 0:
+        if not self.min_liquidity.is_finite() or self.min_liquidity < 0:
             raise PolicyError("min_liquidity must be a finite non-negative number")
-        if not math.isfinite(self.max_notional) or self.max_notional <= 0:
+        if not self.max_notional.is_finite() or self.max_notional <= 0:
             raise PolicyError("max_notional must be a finite positive number")
         if self.max_results < 1:
             raise PolicyError("max_results must be at least 1")
@@ -149,10 +165,10 @@ class Opportunity:
     network: str
     path: tuple[str, ...]
     venues: tuple[str, ...]
-    gross_return: float
-    profit_bps: float
-    limiting_liquidity: float | None
-    estimated_capacity: float
+    gross_return: Decimal
+    profit_bps: Decimal
+    limiting_liquidity: Decimal | None
+    estimated_capacity: Decimal
 
     @property
     def is_profitable(self) -> bool:

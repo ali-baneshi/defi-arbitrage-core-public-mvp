@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from decimal import Decimal
 
 from arbcore.errors import ConfigurationError
 from arbcore.models import RiskPolicy
 
 
-def _read_float(name: str, default: float) -> float:
+def _read_decimal(name: str, default: Decimal) -> Decimal:
     raw = os.getenv(name)
     if raw is None or raw == "":
         return default
     try:
-        return float(raw)
-    except ValueError as exc:
+        return Decimal(raw)
+    except Exception as exc:
         raise ConfigurationError(f"{name} must be a number") from exc
 
 
@@ -40,10 +41,10 @@ class Settings:
             default_network=os.getenv("ARBCORE_DEFAULT_NETWORK", "polygon").strip().lower()
             or "polygon",
             policy=RiskPolicy(
-                min_profit_bps=_read_float("ARBCORE_MIN_PROFIT_BPS", 5.0),
+                min_profit_bps=_read_decimal("ARBCORE_MIN_PROFIT_BPS", Decimal("5")),
                 max_hops=_read_int("ARBCORE_MAX_HOPS", 4),
-                min_liquidity=_read_float("ARBCORE_MIN_LIQUIDITY", 0.0),
-                max_notional=_read_float("ARBCORE_MAX_NOTIONAL", 10_000.0),
+                min_liquidity=_read_decimal("ARBCORE_MIN_LIQUIDITY", Decimal("0")),
+                max_notional=_read_decimal("ARBCORE_MAX_NOTIONAL", Decimal("10000")),
                 max_results=_read_int("ARBCORE_MAX_RESULTS", 25),
             ),
         )

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from arbcore import RiskPolicy
 from arbcore.service import (
     RustAnalysisService,
@@ -15,7 +17,7 @@ def test_rust_service_reports_unavailable_for_missing_binary():
 def test_auto_engine_falls_back_to_python_when_rust_missing():
     opportunities, engine = analyze_with_optional_rust(
         "examples/market_snapshot.json",
-        RiskPolicy(min_profit_bps=1),
+        RiskPolicy(min_profit_bps=Decimal("1")),
         rust_binary="definitely-missing-defi-arbitrage-core-rs",
     )
     assert engine == "python"

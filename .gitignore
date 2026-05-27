@@ -1,46 +1,49 @@
+```
 # Python
 __pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-.ruff_cache/
-.venv/
-venv/
-dist/
-build/
-.venv/
-.venv*/
-__pycache__/
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
 *.pyc
-**/target/
-
-# Secrets and local state
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
 .env
-.env.*
-!.env.example
-*.key
-*.pem
-*.p12
-*.pfx
-*.sqlite
-*.db
-*.log
-*.jsonl
+.env.local
+*.env.*
 
-# Generated and bulky artifacts
-models/
-data/
-logs/
-my-logs/
-node_modules/
-target/
-out/
-cache/
-artifacts/
-*.pth
-*.pt
-*.pkl
-rust/arbcore-rs/target/
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Coverage
+coverage/
+
+# Distribution / packaging
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+.cov/
+```

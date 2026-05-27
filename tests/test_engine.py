@@ -1,4 +1,5 @@
 import pytest
+from decimal import Decimal
 
 from arbcore import AnalysisEngine, Edge, MarketSnapshot, RiskPolicy, SnapshotError
 
@@ -12,7 +13,7 @@ def test_detects_profitable_cycle_after_fees():
         ),
         network="arbitrum",
     )
-    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=1, max_hops=3)).analyze(snapshot)
+    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=Decimal("1"), max_hops=3)).analyze(snapshot)
     assert len(opportunities) == 1
     assert opportunities[0].network == "arbitrum"
     assert opportunities[0].path == ("A", "B", "C", "A")
@@ -26,7 +27,7 @@ def test_fees_can_remove_apparent_profit():
             Edge("B", "A", 1.01, fee_bps=100),
         )
     )
-    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=1, max_hops=2)).analyze(snapshot)
+    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=Decimal("1"), max_hops=2)).analyze(snapshot)
     assert opportunities == []
 
 
@@ -37,7 +38,7 @@ def test_policy_filters_low_liquidity_edges():
             Edge("B", "A", 0.6, liquidity=5),
         )
     )
-    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=1, min_liquidity=10)).analyze(snapshot)
+    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=Decimal("1"), min_liquidity=Decimal("10"))).analyze(snapshot)
     assert opportunities == []
 
 
@@ -48,7 +49,7 @@ def test_max_notional_caps_estimated_capacity():
             Edge("B", "A", 0.6, liquidity=300),
         )
     )
-    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=1, max_notional=100)).analyze(snapshot)
+    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=Decimal("1"), max_notional=Decimal("100"))).analyze(snapshot)
     assert opportunities[0].limiting_liquidity == 300
     assert opportunities[0].estimated_capacity == 100
 
@@ -62,13 +63,13 @@ def test_max_results_limits_output():
             Edge("D", "C", 0.6),
         )
     )
-    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=1, max_results=1)).analyze(snapshot)
+    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=Decimal("1"), max_results=1)).analyze(snapshot)
     assert len(opportunities) == 1
 
 
 def test_normalizes_asset_symbols():
     snapshot = MarketSnapshot(edges=(Edge(" usdc ", " weth ", 2), Edge("WETH", "USDC", 0.6)))
-    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=1)).analyze(snapshot)
+    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=Decimal("1"))).analyze(snapshot)
     assert opportunities[0].path == ("USDC", "WETH", "USDC")
 
 
@@ -80,7 +81,7 @@ def test_invalid_edge_is_rejected():
 
 def test_direct_model_normalization_handles_non_string_symbols():
     snapshot = MarketSnapshot(edges=(Edge(123, "B", 2), Edge("B", 123, 0.6)))
-    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=1)).analyze(snapshot)
+    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=Decimal("1"))).analyze(snapshot)
     assert opportunities[0].path == ("123", "B", "123")
 
 
@@ -89,5 +90,5 @@ def test_snapshot_normalizes_network_name():
         edges=(Edge("A", "B", 2), Edge("B", "A", 0.6)),
         network="  Base  ",
     )
-    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=1)).analyze(snapshot)
+    opportunities = AnalysisEngine(RiskPolicy(min_profit_bps=Decimal("1"))).analyze(snapshot)
     assert opportunities[0].network == "base"
